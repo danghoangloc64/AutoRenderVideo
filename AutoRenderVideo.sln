@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35303.130
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoRenderVideo", "AutoRenderVideo\AutoRenderVideo.csproj", "{5243F79B-1FE8-4331-8BD7-EE89AB520711}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5243F79B-1FE8-4331-8BD7-EE89AB520711}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5243F79B-1FE8-4331-8BD7-EE89AB520711}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5243F79B-1FE8-4331-8BD7-EE89AB520711}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5243F79B-1FE8-4331-8BD7-EE89AB520711}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {92AC3D32-4727-4952-B321-EF17AB81A52A}
+	EndGlobalSection
+EndGlobal
