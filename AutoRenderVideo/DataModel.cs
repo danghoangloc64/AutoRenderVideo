@@ -8,7 +8,7 @@ namespace AutoRenderVideo
 {
     public class DataModel
     {
-        public string Converted { get; set; }
-        public TimeSpan Total { get; set; }
+        public string File { get; set; }
+        public TimeSpan Duration { get; set; }
     }
 }

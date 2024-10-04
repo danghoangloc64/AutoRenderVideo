@@ -114,6 +114,7 @@
             // 
             // txtSoLuongToiDa
             // 
+            this.txtSoLuongToiDa.Enabled = false;
             this.txtSoLuongToiDa.Location = new System.Drawing.Point(188, 100);
             this.txtSoLuongToiDa.Name = "txtSoLuongToiDa";
             this.txtSoLuongToiDa.Size = new System.Drawing.Size(106, 20);
@@ -255,7 +256,7 @@
             this.Controls.Add(this.txtAmNen);
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Auto Render Video - v3";
+            this.Text = "Auto Render Video - v4";
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
