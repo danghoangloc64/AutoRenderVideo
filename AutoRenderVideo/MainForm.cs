@@ -248,7 +248,7 @@ namespace AutoRenderVideo
             EnableControl(false);
 
             ClearFolder("temp");
-            Dictionary<string, DataModel> dicConvertHinhAnhs = await ProcessConvertCodecVideo(false);
+
 
             int soLuongDangChay = 0;
             int soLuongToiDa = int.Parse(Properties.Settings.Default.SoLuongToiDa);
@@ -270,6 +270,8 @@ namespace AutoRenderVideo
                         {
                             Directory.CreateDirectory(folderSave);
                         }
+                        string randomVide0 = hinhAnhFiles[rnd.Next(hinhAnhFiles.Count)];
+                        DataModel dataModelVideo = await ProcessConvertCodecVideo(randomVide0);
 
                         ClearFolder(folderSave);
 
@@ -281,14 +283,14 @@ namespace AutoRenderVideo
                         TimeSpan wavDuration = (await FFmpeg.GetMediaInfo(musicPath)).Duration;
 
                         List<string> videoList = new List<string>();
-                        string randomVide0 = hinhAnhFiles[rnd.Next(hinhAnhFiles.Count)];
-                        while (totalDuration.TotalSeconds < (wavDuration.TotalSeconds * 2))
+                        while (totalDuration.TotalSeconds < (wavDuration.TotalSeconds))
                         {
-                            videoList.Add(dicConvertHinhAnhs[randomVide0].Converted);
+                            videoList.Add(dataModelVideo.Converted);
 
-                            totalDuration += dicConvertHinhAnhs[randomVide0].Total;
+                            totalDuration += dataModelVideo.Total;
+                            totalDuration -= new TimeSpan(0, 0, 3);
 
-                            if (totalDuration.TotalSeconds >= (wavDuration.TotalSeconds * 2))
+                            if (totalDuration.TotalSeconds >= (wavDuration.TotalSeconds))
                                 break;
                         }
                         if (!_running) return;
@@ -305,7 +307,11 @@ namespace AutoRenderVideo
                         Check();
                         string trimVideo = Path.Combine(folderSave, @"trim.mp4");
                         AddLog($"Video thứ {currentIndex + 1} cắt video");
-                        await TrimVideos(currentIndex + 1, mergeVideo, trimVideo, wavDuration);
+
+                        TimeSpan videoLength = (await FFmpeg.GetMediaInfo(mergeVideo)).Duration;
+                        TimeSpan length = wavDuration < videoLength ? wavDuration : videoLength;
+
+                        await TrimVideos(currentIndex + 1, mergeVideo, trimVideo, length);
                         if (!_running) return;
 
                         Check();
@@ -333,6 +339,8 @@ namespace AutoRenderVideo
                 }
             });
             EnableControl(true);
+
+            MessageBox.Show("Tool đã chạy xong", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void txtSoPhutDauRa_KeyPress(object sender, KeyPressEventArgs e)
@@ -353,7 +361,7 @@ namespace AutoRenderVideo
         {
             rtbLog.Invoke(new Action(() =>
             {
-                if (rtbLog.Lines.Length > 1000)
+                if (rtbLog.Lines.Length > 100)
                 {
                     rtbLog.Clear();
                 }
@@ -366,7 +374,7 @@ namespace AutoRenderVideo
         {
             try
             {
-                var arg = $"-i \"{inputPath}\" -vf scale=1920:1080 -r 30 -c:v libx265 -b:v 3000k \"{outputPath}\"";
+                var arg = $"-i \"{inputPath}\" -vf scale=1920:1080 -r 30 -c:v libx265 -b:v 2500k \"{outputPath}\"";
                 var conversion = FFmpeg.Conversions.New()
                     .AddParameter(arg);
 
@@ -395,7 +403,7 @@ namespace AutoRenderVideo
                 {
                     var mediaInfo = await FFmpeg.GetMediaInfo(videoFiles[i]);
 
-                    double randomDuration = rnd.Next(3, 6);
+                    double randomDuration = 3;// rnd.Next(3, 6);
 
                     double transitionOffset = mediaInfo.Duration.Seconds + preDuration - randomDuration;
 
@@ -464,7 +472,7 @@ namespace AutoRenderVideo
             try
             {
                 var conversion = FFmpeg.Conversions.New()
-                .AddParameter($"-i \"{inputFilePathVideo}\" -i \"{inputFilePathAudio}\" -vf scale=1920:1080 -r 30 -c:v libx265 -b:v 3000k \"{outputFilePath}\" ");
+                .AddParameter($"-i \"{inputFilePathVideo}\" -i \"{inputFilePathAudio}\" -b:v 2500k \"{outputFilePath}\" ");
 
                 conversion.OnProgress += (object sender, ConversionProgressEventArgs args) =>
                 {
@@ -489,23 +497,12 @@ namespace AutoRenderVideo
             btnChonSoundNhac.Enabled = enable;
             txtSoLuongToiDa.Enabled = enable;
             txtSoPhutDauRa.Enabled = enable;
-            btnConvertCodecVideo.Enabled = enable;
             btnStart.Enabled = enable;
             //btnStop.Enabled = enable;
             txtSoLuongFileRender.Enabled = enable;
         }
 
-
-        private async void btnConvertCodecVideo_Click(object sender, EventArgs e)
-        {
-            EnableControl(false);
-            Check();
-            await ProcessConvertCodecVideo(true);
-            Check();
-            EnableControl(true);
-        }
-
-        private async Task<Dictionary<string, DataModel>> ProcessConvertCodecVideo(bool deleteFileInDataFolder)
+        private async Task<DataModel> ProcessConvertCodecVideo(string inputFile)
         {
             if (string.IsNullOrEmpty(Properties.Settings.Default.FolderHinhAnh))
             {
@@ -524,23 +521,25 @@ namespace AutoRenderVideo
             {
                 Directory.CreateDirectory("data");
             }
-            if (deleteFileInDataFolder)
-            {
-                ClearFolder("data");
-            }
 
-            Dictionary<string, DataModel> dicConvertHinhAnhs = new Dictionary<string, DataModel>();
+            string output = $"data\\{Path.GetFileName(inputFile)}";
 
-            foreach (var hinhAnhFile in hinhAnhFiles)
+            //if (System.IO.File.Exists(output))
+            //{
+            //    System.IO.File.Delete(output);
+            //}
+
+            DataModel dataModel = new DataModel()
             {
-                Check();
-                string convertedVideo = await ConvertVideo(hinhAnhFile, $"data\\{Path.GetFileName(hinhAnhFile)}");
-                var fileDuration = (await FFmpeg.GetMediaInfo(convertedVideo)).Duration;
-                dicConvertHinhAnhs[hinhAnhFile] = new DataModel() { Converted = convertedVideo, Total = fileDuration };
-                Check();
-            }
+                Converted = output,
+                Total = TimeSpan.Zero,
+            };
+
+            string convertedVideo = await ConvertVideo(inputFile, output);
+            dataModel.Total = (await FFmpeg.GetMediaInfo(convertedVideo)).Duration;
+
             AddLog($"Convert file xong");
-            return dicConvertHinhAnhs;
+            return dataModel;
         }
 
 

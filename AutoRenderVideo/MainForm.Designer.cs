@@ -43,7 +43,6 @@
             this.txtSoPhutDauRa = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
-            this.btnConvertCodecVideo = new System.Windows.Forms.Button();
             this.rtbLog = new System.Windows.Forms.RichTextBox();
             this.txtSoLuongFileRender = new System.Windows.Forms.TextBox();
             this.label7 = new System.Windows.Forms.Label();
@@ -191,22 +190,12 @@
             this.label6.TabIndex = 1;
             this.label6.Text = "(phút)";
             // 
-            // btnConvertCodecVideo
-            // 
-            this.btnConvertCodecVideo.Location = new System.Drawing.Point(12, 546);
-            this.btnConvertCodecVideo.Name = "btnConvertCodecVideo";
-            this.btnConvertCodecVideo.Size = new System.Drawing.Size(776, 23);
-            this.btnConvertCodecVideo.TabIndex = 10;
-            this.btnConvertCodecVideo.Text = "Convert các file hình ảnh/video về cùng 1 codec";
-            this.btnConvertCodecVideo.UseVisualStyleBackColor = true;
-            this.btnConvertCodecVideo.Click += new System.EventHandler(this.btnConvertCodecVideo_Click);
-            // 
             // rtbLog
             // 
             this.rtbLog.Location = new System.Drawing.Point(12, 153);
             this.rtbLog.Name = "rtbLog";
             this.rtbLog.ReadOnly = true;
-            this.rtbLog.Size = new System.Drawing.Size(776, 387);
+            this.rtbLog.Size = new System.Drawing.Size(776, 416);
             this.rtbLog.TabIndex = 9;
             this.rtbLog.Text = "";
             this.rtbLog.TextChanged += new System.EventHandler(this.rtbLog_TextChanged);
@@ -246,7 +235,6 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 639);
             this.Controls.Add(this.rtbLog);
-            this.Controls.Add(this.btnConvertCodecVideo);
             this.Controls.Add(this.btnStop);
             this.Controls.Add(this.btnStart);
             this.Controls.Add(this.btnChonHinhAnh);
@@ -267,7 +255,7 @@
             this.Controls.Add(this.txtAmNen);
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Auto Render Video - v2";
+            this.Text = "Auto Render Video - v3";
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -291,7 +279,6 @@
         private System.Windows.Forms.TextBox txtSoPhutDauRa;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label6;
-        private System.Windows.Forms.Button btnConvertCodecVideo;
         private System.Windows.Forms.RichTextBox rtbLog;
         private System.Windows.Forms.TextBox txtSoLuongFileRender;
         private System.Windows.Forms.Label label7;
