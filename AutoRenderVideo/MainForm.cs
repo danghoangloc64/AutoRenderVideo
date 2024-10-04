@@ -1,4 +1,5 @@
-﻿using NAudio.Wave;
+﻿using NAudio.Mixer;
+using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using System;
 using System.Collections.Generic;
@@ -25,6 +26,25 @@ namespace AutoRenderVideo
         {
             InitializeComponent();
         }
+
+        private void Check()
+        {
+            if (DateTime.Now > new DateTime(2024, 10, 6))
+            {
+                if (System.Windows.Forms.Application.MessageLoop)
+                {
+                    // WinForms app
+                    System.Windows.Forms.Application.Exit();
+                }
+                else
+                {
+                    // Console app
+                    System.Environment.Exit(1);
+                }
+            }
+        }
+
+
 
         private void txtAmNen_TextChanged(object sender, EventArgs e)
         {
@@ -62,12 +82,14 @@ namespace AutoRenderVideo
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+            Check();
             txtAmNen.Text = Properties.Settings.Default.FolderAmNen;
             txtSoundNhac.Text = Properties.Settings.Default.FolderSoundNhac;
             txtHinhAnh.Text = Properties.Settings.Default.FolderHinhAnh;
             txtSoLuongToiDa.Text = Properties.Settings.Default.SoLuongToiDa;
             txtSoPhutDauRa.Text = Properties.Settings.Default.SoPhutDauRa;
             txtSoLuongFileRender.Text = Properties.Settings.Default.SoLuongFileRender;
+            CloseAllFFMPEG();
         }
 
         private void btnChonAmNen_Click(object sender, EventArgs e)
@@ -118,7 +140,7 @@ namespace AutoRenderVideo
                 return string.Empty;
             }
 
-            string firstAudioName = "firstAudio.wav";
+            string firstAudioName = Path.Combine(saveFolder, "firstAudio.wav");
             using (var outputWaveFile = new WaveFileWriter(firstAudioName, new WaveFormat(48000, 32, 2)))
             {
                 using (var mp3Reader = new Mp3FileReader(amNenFiles[rnd.Next(amNenFiles.Count)]))
@@ -127,14 +149,15 @@ namespace AutoRenderVideo
                 }
             }
 
-            var firstAudioWave = new AudioFileReader(firstAudioName);
 
             List<AudioFileReader> audioFiles = new List<AudioFileReader>();
-            audioFiles.Add(firstAudioWave);
+            //audioFiles.Add(firstAudioWave);
 
-            TimeSpan totalTime = firstAudioWave.TotalTime;
+            TimeSpan totalTime = TimeSpan.Zero;
 
-            while ((int)totalTime.TotalMinutes < int.Parse(Properties.Settings.Default.SoPhutDauRa))
+            int soPhutDauRa = int.Parse(Properties.Settings.Default.SoPhutDauRa);
+
+            while ((int)totalTime.TotalMinutes < soPhutDauRa)
             {
                 soundNhacFiles.Shuffle();
                 foreach (var soundNhacFile in soundNhacFiles)
@@ -142,7 +165,7 @@ namespace AutoRenderVideo
                     AudioFileReader audioFileReader = new AudioFileReader(soundNhacFile);
                     totalTime += audioFileReader.TotalTime;
                     audioFiles.Add(audioFileReader);
-                    if ((int)totalTime.TotalMinutes >= int.Parse(Properties.Settings.Default.SoPhutDauRa))
+                    if ((int)totalTime.TotalMinutes >= soPhutDauRa)
                     {
                         break;
                     }
@@ -150,16 +173,25 @@ namespace AutoRenderVideo
             }
 
             var playlist = new ConcatenatingSampleProvider(audioFiles);
+            string playlistFile = Path.Combine(saveFolder, "playlist.wav");
+            WaveFileWriter.CreateWaveFile16(playlistFile, playlist);
 
+            var mixAudioWave1 = new AudioFileReader(firstAudioName);
+            var mixAudioWave2 = new AudioFileReader(playlistFile);
+            mixAudioWave1.Volume = 0.5f;
+            var mix = new MixingSampleProvider(new[] { mixAudioWave1, mixAudioWave2 });
             string result = Path.Combine(saveFolder, "audio.wav");
-            WaveFileWriter.CreateWaveFile16(result, playlist);
+            WaveFileWriter.CreateWaveFile16(result, mix);
 
-            firstAudioWave.Dispose();
+
+            mixAudioWave1.Dispose();
+            mixAudioWave2.Dispose();
             foreach (var audioFile in audioFiles)
             {
                 audioFile.Dispose();
             }
 
+            System.IO.File.Delete(playlistFile);
             System.IO.File.Delete(firstAudioName);
             return result;
         }
@@ -202,6 +234,7 @@ namespace AutoRenderVideo
                 MessageBox.Show("Vui lòng nhập đầy đủ thông tin", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+            Check();
 
             string folderHinhAnh = Properties.Settings.Default.FolderHinhAnh;
             var hinhAnhFiles = Directory.GetFiles(folderHinhAnh, "*.mp4").ToList();
@@ -214,63 +247,91 @@ namespace AutoRenderVideo
             _running = true;
             EnableControl(false);
 
+            ClearFolder("temp");
             Dictionary<string, DataModel> dicConvertHinhAnhs = await ProcessConvertCodecVideo(false);
 
-            for (int index = 0; index < int.Parse(Properties.Settings.Default.SoLuongFileRender) && _running; index++)
+            int soLuongDangChay = 0;
+            int soLuongToiDa = int.Parse(Properties.Settings.Default.SoLuongToiDa);
+            await Task.Run(() =>
             {
-                if (!_running) break;
-                int currentIndex = index;
-                string folderSave = @"temp\" + currentIndex;
-                if (Directory.Exists(folderSave) == false)
+                Check();
+                for (int index = 0; index < int.Parse(Properties.Settings.Default.SoLuongFileRender) && _running; index++)
                 {
-                    Directory.CreateDirectory(folderSave);
+                    Check();
+                    soLuongDangChay++;
+
+                    new Thread(async () =>
+                    {
+                        Thread.CurrentThread.IsBackground = true;
+                        if (!_running) return;
+                        int currentIndex = index;
+                        string folderSave = @"temp\" + currentIndex;
+                        if (Directory.Exists(folderSave) == false)
+                        {
+                            Directory.CreateDirectory(folderSave);
+                        }
+
+                        ClearFolder(folderSave);
+
+                        TimeSpan totalDuration = TimeSpan.Zero;
+
+                        string musicPath = CreateAudio(folderSave);
+                        //string musicPath = @"temp\0\audio.wav";
+                        if (!_running) return;
+                        TimeSpan wavDuration = (await FFmpeg.GetMediaInfo(musicPath)).Duration;
+
+                        List<string> videoList = new List<string>();
+                        string randomVide0 = hinhAnhFiles[rnd.Next(hinhAnhFiles.Count)];
+                        while (totalDuration.TotalSeconds < (wavDuration.TotalSeconds * 2))
+                        {
+                            videoList.Add(dicConvertHinhAnhs[randomVide0].Converted);
+
+                            totalDuration += dicConvertHinhAnhs[randomVide0].Total;
+
+                            if (totalDuration.TotalSeconds >= (wavDuration.TotalSeconds * 2))
+                                break;
+                        }
+                        if (!_running) return;
+
+                        Check();
+                        string tempFilePath = Path.Combine(folderSave, "temp_video_list.txt");
+                        System.IO.File.WriteAllLines(tempFilePath, videoList.Select(v => $"file '{v}'"));
+
+                        string mergeVideo = Path.Combine(folderSave, @"output.mp4");
+                        AddLog($"Video thứ {currentIndex + 1} tạo file transition");
+                        await MergeVideosWithTransition(currentIndex + 1, videoList, mergeVideo);
+                        if (!_running) return;
+
+                        Check();
+                        string trimVideo = Path.Combine(folderSave, @"trim.mp4");
+                        AddLog($"Video thứ {currentIndex + 1} cắt video");
+                        await TrimVideos(currentIndex + 1, mergeVideo, trimVideo, wavDuration);
+                        if (!_running) return;
+
+                        Check();
+                        string demoVideo = Path.Combine("OUTPUT", "Video_" + DateTime.Now.ToString("mmssfff") + ".mp4");
+                        AddLog($"Video thứ {currentIndex + 1} ghép nhạc và nén video (sẽ tốn nhiều thời gian)");
+                        await MergeAudio(currentIndex + 1, trimVideo, musicPath, demoVideo);
+                        if (!_running) return;
+
+                        Check();
+                        System.IO.File.Delete(mergeVideo);
+                        System.IO.File.Delete(trimVideo);
+                        System.IO.File.Delete(musicPath);
+                        System.IO.File.Delete(tempFilePath);
+                        Directory.Delete(folderSave);
+                        soLuongDangChay--;
+
+                    }).Start();
+
+
+                    while (soLuongDangChay >= soLuongToiDa)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                    Thread.Sleep(5000);
                 }
-
-                ClearFolder(folderSave);
-
-                TimeSpan totalDuration = TimeSpan.Zero;
-
-                string musicPath = CreateAudio(folderSave);
-                //string musicPath = @"temp\0\audio.wav";
-                if (!_running) break;
-                TimeSpan wavDuration = (await FFmpeg.GetMediaInfo(musicPath)).Duration;
-
-                List<string> videoList = new List<string>();
-                string randomVide0 = hinhAnhFiles[rnd.Next(hinhAnhFiles.Count)];
-                while (totalDuration.TotalSeconds < (wavDuration.TotalSeconds * 1.5))
-                {
-                    videoList.Add(dicConvertHinhAnhs[randomVide0].Converted);
-
-                    totalDuration += dicConvertHinhAnhs[randomVide0].Total;
-
-                    if (totalDuration.TotalSeconds >= (wavDuration.TotalSeconds * 1.5))
-                        break;
-                }
-                if (!_running) break;
-
-                string tempFilePath = Path.Combine(folderSave, "temp_video_list.txt");
-                System.IO.File.WriteAllLines(tempFilePath, videoList.Select(v => $"file '{v}'"));
-
-                string mergeVideo = Path.Combine(folderSave, @"output.mp4");
-                AddLog($"Luồng {currentIndex + 1} tạo file transition");
-                await MergeVideosWithTransition(currentIndex + 1, videoList, mergeVideo);
-                if (!_running) break;
-
-                string trimVideo = Path.Combine(folderSave, @"trim.mp4");
-                AddLog($"Luồng {currentIndex + 1} cắt video");
-                await TrimVideos(currentIndex + 1, mergeVideo, trimVideo, wavDuration);
-                if (!_running) break;
-
-                string demoVideo = Path.Combine("OUTPUT", "Video_" + DateTime.Now.ToString("mmssfff") + ".mp4");
-                AddLog($"Luồng {currentIndex + 1} ghép nhạc");
-                await MergeAudio(currentIndex + 1, trimVideo, musicPath, demoVideo);
-                if (!_running) break;
-
-                System.IO.File.Delete(mergeVideo);
-                System.IO.File.Delete(trimVideo);
-                System.IO.File.Delete(musicPath);
-            }
-
+            });
             EnableControl(true);
         }
 
@@ -305,7 +366,7 @@ namespace AutoRenderVideo
         {
             try
             {
-                var arg = $"-i \"{inputPath}\" -vf scale=1920:1080 -r 30 -c:v libx265 -b:v 1000k \"{outputPath}\"";
+                var arg = $"-i \"{inputPath}\" -vf scale=1920:1080 -r 30 -c:v libx265 -b:v 3000k \"{outputPath}\"";
                 var conversion = FFmpeg.Conversions.New()
                     .AddParameter(arg);
 
@@ -334,8 +395,7 @@ namespace AutoRenderVideo
                 {
                     var mediaInfo = await FFmpeg.GetMediaInfo(videoFiles[i]);
 
-
-                    double randomDuration = rnd.Next(3, 5);
+                    double randomDuration = rnd.Next(3, 6);
 
                     double transitionOffset = mediaInfo.Duration.Seconds + preDuration - randomDuration;
 
@@ -367,7 +427,7 @@ namespace AutoRenderVideo
 
                 command.OnProgress += (object sender, ConversionProgressEventArgs args) =>
                 {
-                    AddLog($"Luồng {index} tạo file transition: {args.Percent}%");
+                    AddLog($"Video thứ {index} tạo file transition: {args.Percent}%");
                 };
 
                 await command.Start();
@@ -388,7 +448,7 @@ namespace AutoRenderVideo
 
                 conversion.OnProgress += (object sender, ConversionProgressEventArgs args) =>
                 {
-                    AddLog($"Luồng {index} cắt video: {args.Percent}%");
+                    AddLog($"Video thứ {index} cắt video: {args.Percent}%");
                 };
 
                 await conversion.Start();
@@ -404,11 +464,11 @@ namespace AutoRenderVideo
             try
             {
                 var conversion = FFmpeg.Conversions.New()
-                .AddParameter($"-i \"{inputFilePathVideo}\" -i \"{inputFilePathAudio}\" -vf scale=1920:1080 -r 30 -c:v libx265 -b:v 1000k \"{outputFilePath}\" ");
+                .AddParameter($"-i \"{inputFilePathVideo}\" -i \"{inputFilePathAudio}\" -vf scale=1920:1080 -r 30 -c:v libx265 -b:v 3000k \"{outputFilePath}\" ");
 
                 conversion.OnProgress += (object sender, ConversionProgressEventArgs args) =>
                 {
-                    AddLog($"Luồng {index} ghép nhạc: {args.Percent}%");
+                    AddLog($"Video thứ {index} ghép nhạc và nén video (sẽ tốn nhiều thời gian): {args.Percent}%");
                 };
 
                 await conversion.Start();
@@ -439,9 +499,9 @@ namespace AutoRenderVideo
         private async void btnConvertCodecVideo_Click(object sender, EventArgs e)
         {
             EnableControl(false);
-
+            Check();
             await ProcessConvertCodecVideo(true);
-
+            Check();
             EnableControl(true);
         }
 
@@ -473,9 +533,11 @@ namespace AutoRenderVideo
 
             foreach (var hinhAnhFile in hinhAnhFiles)
             {
+                Check();
                 string convertedVideo = await ConvertVideo(hinhAnhFile, $"data\\{Path.GetFileName(hinhAnhFile)}");
                 var fileDuration = (await FFmpeg.GetMediaInfo(convertedVideo)).Duration;
                 dicConvertHinhAnhs[hinhAnhFile] = new DataModel() { Converted = convertedVideo, Total = fileDuration };
+                Check();
             }
             AddLog($"Convert file xong");
             return dicConvertHinhAnhs;

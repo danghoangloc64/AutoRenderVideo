@@ -117,7 +117,6 @@
             // 
             this.txtSoLuongToiDa.Location = new System.Drawing.Point(188, 100);
             this.txtSoLuongToiDa.Name = "txtSoLuongToiDa";
-            this.txtSoLuongToiDa.ReadOnly = true;
             this.txtSoLuongToiDa.Size = new System.Drawing.Size(106, 20);
             this.txtSoLuongToiDa.TabIndex = 6;
             this.txtSoLuongToiDa.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
@@ -268,7 +267,7 @@
             this.Controls.Add(this.txtAmNen);
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Auto Render Video";
+            this.Text = "Auto Render Video - v2";
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
