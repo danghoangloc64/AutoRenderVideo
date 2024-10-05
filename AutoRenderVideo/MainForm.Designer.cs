@@ -44,8 +44,6 @@
             this.label5 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
             this.rtbLog = new System.Windows.Forms.RichTextBox();
-            this.txtSoLuongFileRender = new System.Windows.Forms.TextBox();
-            this.label7 = new System.Windows.Forms.Label();
             this.btnStop = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
@@ -165,7 +163,7 @@
             // 
             // txtSoPhutDauRa
             // 
-            this.txtSoPhutDauRa.Location = new System.Drawing.Point(430, 127);
+            this.txtSoPhutDauRa.Location = new System.Drawing.Point(188, 127);
             this.txtSoPhutDauRa.Name = "txtSoPhutDauRa";
             this.txtSoPhutDauRa.Size = new System.Drawing.Size(106, 20);
             this.txtSoPhutDauRa.TabIndex = 8;
@@ -176,7 +174,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(343, 131);
+            this.label5.Location = new System.Drawing.Point(12, 131);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(81, 13);
             this.label5.TabIndex = 1;
@@ -185,7 +183,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(542, 131);
+            this.label6.Location = new System.Drawing.Point(300, 131);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(34, 13);
             this.label6.TabIndex = 1;
@@ -200,25 +198,6 @@
             this.rtbLog.TabIndex = 9;
             this.rtbLog.Text = "";
             this.rtbLog.TextChanged += new System.EventHandler(this.rtbLog_TextChanged);
-            // 
-            // txtSoLuongFileRender
-            // 
-            this.txtSoLuongFileRender.Location = new System.Drawing.Point(188, 127);
-            this.txtSoLuongFileRender.Name = "txtSoLuongFileRender";
-            this.txtSoLuongFileRender.Size = new System.Drawing.Size(106, 20);
-            this.txtSoLuongFileRender.TabIndex = 7;
-            this.txtSoLuongFileRender.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.txtSoLuongFileRender.TextChanged += new System.EventHandler(this.txtSoLuongFileRender_TextChanged);
-            this.txtSoLuongFileRender.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtSoLuongFileRender_KeyPress);
-            // 
-            // label7
-            // 
-            this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(12, 131);
-            this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(130, 13);
-            this.label7.TabIndex = 1;
-            this.label7.Text = "Số lượng file muốn render:";
             // 
             // btnStop
             // 
@@ -243,20 +222,18 @@
             this.Controls.Add(this.btnChonAmNen);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.label5);
-            this.Controls.Add(this.label7);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.txtSoPhutDauRa);
-            this.Controls.Add(this.txtSoLuongFileRender);
             this.Controls.Add(this.txtSoLuongToiDa);
             this.Controls.Add(this.txtHinhAnh);
             this.Controls.Add(this.txtSoundNhac);
             this.Controls.Add(this.txtAmNen);
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Auto Render Video - v4";
+            this.Text = "Auto Render Video - v5";
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -281,8 +258,6 @@
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.RichTextBox rtbLog;
-        private System.Windows.Forms.TextBox txtSoLuongFileRender;
-        private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Button btnStop;
     }
 }

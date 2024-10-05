@@ -88,7 +88,6 @@ namespace AutoRenderVideo
             txtHinhAnh.Text = Properties.Settings.Default.FolderHinhAnh;
             txtSoLuongToiDa.Text = Properties.Settings.Default.SoLuongToiDa;
             txtSoPhutDauRa.Text = Properties.Settings.Default.SoPhutDauRa;
-            txtSoLuongFileRender.Text = Properties.Settings.Default.SoLuongFileRender;
             CloseAllFFMPEG();
         }
 
@@ -178,8 +177,8 @@ namespace AutoRenderVideo
             var mixAudioWave2 = new AudioFileReader(playlistFile);
             mixAudioWave1.Volume = 0.5f;
             var mix = new MixingSampleProvider(new[] { mixAudioWave1, mixAudioWave2 });
-            string result = Path.Combine(saveFolder, "audio.wav");
-            WaveFileWriter.CreateWaveFile16(result, mix);
+            string result_temp = Path.Combine(saveFolder, "audio_temp.wav");
+            WaveFileWriter.CreateWaveFile16(result_temp, mix);
 
 
             mixAudioWave1.Dispose();
@@ -191,6 +190,20 @@ namespace AutoRenderVideo
 
             System.IO.File.Delete(playlistFile);
             System.IO.File.Delete(firstAudioName);
+
+            TimeSpan end = TimeSpan.FromMinutes(soPhutDauRa);
+
+            string result = Path.Combine(saveFolder, "audio.wav");
+            if (totalTime > end)
+            {
+                WavFileUtils.CutWavFile(result_temp, result, TimeSpan.Zero, end);
+            }
+            else
+            {
+                File.Copy(result_temp, result);
+            }
+            System.IO.File.Delete(result_temp);
+
             return result;
         }
 
@@ -221,6 +234,7 @@ namespace AutoRenderVideo
 
             string folderHinhAnh = Properties.Settings.Default.FolderHinhAnh;
             var hinhAnhFiles = Directory.GetFiles(folderHinhAnh, "*.mp4").ToList();
+            hinhAnhFiles.AddRange(Directory.GetFiles(folderHinhAnh, "*.mov").ToList());
             if (hinhAnhFiles.Count == 0)
             {
                 MessageBox.Show($"Không có file trong folder\n{folderHinhAnh}", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -231,6 +245,7 @@ namespace AutoRenderVideo
             EnableControl(false);
 
             ClearFolder("temp");
+            ClearFolder("data");
 
 
             int soLuongDangChay = 0;
@@ -238,8 +253,9 @@ namespace AutoRenderVideo
             await Task.Run(() =>
             {
                 Check();
-                for (int index = 0; index < int.Parse(Properties.Settings.Default.SoLuongFileRender) && _running; index++)
+                for (int index = 0; index < hinhAnhFiles.Count && _running; index++)
                 {
+                    ClearFolder("data");
                     Check();
                     soLuongDangChay++;
 
@@ -253,18 +269,19 @@ namespace AutoRenderVideo
                         {
                             Directory.CreateDirectory(folderSave);
                         }
-                        string randomVide0 = hinhAnhFiles[rnd.Next(hinhAnhFiles.Count)];
+                        string hinhAnhFile = hinhAnhFiles[index];
 
-                        var inputInfo = (await FFmpeg.GetMediaInfo(randomVide0)).Duration;
-
-                        while (inputInfo.TotalSeconds <= 6)
-                        {
-                            randomVide0 = hinhAnhFiles[rnd.Next(hinhAnhFiles.Count)];
-                            inputInfo = (await FFmpeg.GetMediaInfo(randomVide0)).Duration;
-                        }
+                        var inputInfo = (await FFmpeg.GetMediaInfo(hinhAnhFile)).Duration;
 
 
-                        DataModel inputVideo = await ProcessConvertCodecVideo(randomVide0);
+                        //while (inputInfo.TotalSeconds <= 6)
+                        //{
+                        //    hinhAnhFile = hinhAnhFiles[rnd.Next(hinhAnhFiles.Count)];
+                        //    inputInfo = (await FFmpeg.GetMediaInfo(hinhAnhFile)).Duration;
+                        //}
+
+
+                        DataModel inputVideo = await ProcessConvertCodecVideo(hinhAnhFile);
 
                         ClearFolder(folderSave);
 
@@ -292,7 +309,6 @@ namespace AutoRenderVideo
                         await TrimVideo(currentIndex + 1, videoWithTransition, part1, 0, (int)(inputVideo.Duration.TotalSeconds - duration));
                         await TrimVideo(currentIndex + 1, videoWithTransition, part2, (int)(inputVideo.Duration.TotalSeconds - duration), (int)(inputVideo.Duration.TotalSeconds));
                         await TrimVideo(currentIndex + 1, videoWithTransition, part3, (int)(inputVideo.Duration.TotalSeconds), (int)(videoWithTransitionLength.TotalSeconds) - duration);
-
 
                         AddLog($"Video thứ {currentIndex + 1} xử lý file transition: xong");
 
@@ -366,6 +382,7 @@ namespace AutoRenderVideo
             });
             EnableControl(true);
 
+            ClearFolder("data");
             MessageBox.Show("Tool đã chạy xong", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -495,10 +512,24 @@ namespace AutoRenderVideo
 
                 double transitionOffset = mediaInfo.Duration.TotalSeconds - duration;
                 var command = FFmpeg.Conversions.New();
-                command.AddParameter($"-i \"{videoFile}\"");
-                command.AddParameter($"-i \"{videoFile}\"");
-                command.AddParameter($"-filter_complex \"[0:v]scale=1920:1080[v1];[1:v]scale=1920:1080[v2];[v1][v2]xfade=transition=fade:duration={duration}:offset={transitionOffset}[video];\"");
-                command.AddParameter($"-map \"[video]\" \"{output}\"");
+
+                if (mediaInfo.Duration.TotalSeconds <= 15)
+                {
+                    double transitionOffset2 = mediaInfo.Duration.TotalSeconds + transitionOffset - duration;
+                    command.AddParameter($"-i \"{videoFile}\"");
+                    command.AddParameter($"-i \"{videoFile}\"");
+                    command.AddParameter($"-i \"{videoFile}\"");
+                    command.AddParameter($"-filter_complex \"[0][1]xfade=transition=fade:duration={duration}:offset={transitionOffset}[V0];[V0][2]xfade=transition=fade:duration={duration}:offset={transitionOffset2}[video];\"");
+                    command.AddParameter($"-map \"[video]\" \"{output}\"");
+                }
+                else
+                {
+                    command.AddParameter($"-i \"{videoFile}\"");
+                    command.AddParameter($"-i \"{videoFile}\"");
+                    command.AddParameter($"-filter_complex \"[0][1]xfade=transition=fade:duration={duration}:offset={transitionOffset}[video];\"");
+                    command.AddParameter($"-map \"[video]\" \"{output}\"");
+                }
+
 
                 command.OnProgress += (object sender, ConversionProgressEventArgs args) =>
                 {
@@ -544,8 +575,6 @@ namespace AutoRenderVideo
             txtSoLuongToiDa.Enabled = enable;
             txtSoPhutDauRa.Enabled = enable;
             btnStart.Enabled = enable;
-            //btnStop.Enabled = enable;
-            txtSoLuongFileRender.Enabled = enable;
         }
 
         private async Task<DataModel> ProcessConvertCodecVideo(string inputFile)
@@ -558,6 +587,7 @@ namespace AutoRenderVideo
 
             string folderHinhAnh = Properties.Settings.Default.FolderHinhAnh;
             var hinhAnhFiles = Directory.GetFiles(folderHinhAnh, "*.mp4").ToList();
+            hinhAnhFiles.AddRange(Directory.GetFiles(folderHinhAnh, "*.mov").ToList());
             if (hinhAnhFiles.Count == 0)
             {
                 MessageBox.Show($"Không có file trong folder\n{folderHinhAnh}", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -608,20 +638,6 @@ namespace AutoRenderVideo
             rtbLog.ScrollToCaret();
         }
 
-        private void txtSoLuongFileRender_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
-            {
-                e.Handled = true;
-            }
-        }
-
-        private void txtSoLuongFileRender_TextChanged(object sender, EventArgs e)
-        {
-            Properties.Settings.Default.SoLuongFileRender = txtSoLuongFileRender.Text;
-            Properties.Settings.Default.Save();
-        }
-
         private void btnStop_Click(object sender, EventArgs e)
         {
             _running = false;
@@ -646,6 +662,8 @@ namespace AutoRenderVideo
 
             }
         }
+
+
 
     }
 }

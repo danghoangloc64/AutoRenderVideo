@@ -82,17 +82,5 @@ namespace AutoRenderVideo.Properties {
                 this["SoPhutDauRa"] = value;
             }
         }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1")]
-        public string SoLuongFileRender {
-            get {
-                return ((string)(this["SoLuongFileRender"]));
-            }
-            set {
-                this["SoLuongFileRender"] = value;
-            }
-        }
     }
 }
